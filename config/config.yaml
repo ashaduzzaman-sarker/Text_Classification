@@ -1,0 +1,61 @@
+# ============================================================================
+# config/config.yaml
+# ============================================================================
+artifacts_root: artifacts
+
+# ==============================
+# Data Ingestion
+# ==============================
+data_ingestion:
+  root_dir: artifacts/data_ingestion
+  cache_dir: artifacts/data_ingestion/cache
+  dataset_name: imdb  # Hugging Face dataset name (e.g., "imdb", "ag_news")
+  config_name: null   # Optional (e.g., "default" for some datasets)
+  split: train
+  max_samples: 2000   # Use null for full dataset or limit for fast iteration
+  test_size: 0.2      # Split ratio for test data
+
+# ==============================
+# Data Validation
+# ==============================
+data_validation:
+  root_dir: artifacts/data_validation
+  status_file: artifacts/data_validation/status.txt
+  data_dir: artifacts/data_ingestion/dataset
+  required_columns: ["text", "label"]  # Adapted for classification
+  min_samples: 100
+
+# ==============================
+# Data Transformation
+# ==============================
+data_transformation:
+  root_dir: artifacts/data_transformation
+  data_dir: artifacts/data_ingestion/dataset
+  tokenizer_name: distilbert-base-uncased  # or "bert-base-uncased", "roberta-base"
+  max_length: 256
+  padding: max_length  # Options: max_length | longest | do_not_pad
+  truncation: true
+  batch_size: 100
+  label_column: label
+  text_column: text
+
+# ==============================
+# Model Training
+# ==============================
+model_trainer:
+  root_dir: artifacts/model_trainer
+  data_dir: artifacts/data_transformation/tokenized_dataset
+  tokenizer_dir: artifacts/data_transformation/tokenizer
+  model_name: distilbert-base-uncased
+  train_split: 0.9
+  seed: 42
+
+# ==============================
+# Model Evaluation
+# ==============================
+model_evaluation:
+  root_dir: artifacts/model_evaluation
+  data_dir: artifacts/data_transformation/tokenized_dataset
+  model_dir: artifacts/model_trainer/final_model
+  tokenizer_dir: artifacts/model_trainer/final_model
+  metric_file: artifacts/model_evaluation/metrics.json
