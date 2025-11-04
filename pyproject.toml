@@ -84,7 +84,7 @@ dependencies = [
   "black>=24.8.0",
   "isort>=5.13.0",
   "mypy>=1.10.0",
-  "notebook>=7.2.0",
+  "notebook>=5.7.6",
   "httpx>=0.27.0"
 ]
 
