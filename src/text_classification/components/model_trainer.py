@@ -4,6 +4,7 @@
 """Fine-tunes Transformer models for text classification with robust metrics and logging."""
 
 import numpy as np
+import json
 from pathlib import Path
 from datasets import load_from_disk, DatasetDict
 from transformers import (
@@ -30,19 +31,14 @@ class ModelTrainer:
         self.tokenizer = None
         self.dataset = None
 
+
     def load_data(self):
         """Load tokenized dataset and prepare train-validation splits."""
         try:
             logger.info(f"Loading tokenized dataset from: {self.config.data_dir}")
             dataset = load_from_disk(str(self.config.data_dir))
 
-            # # Split into train/validation
-            # logger.info("Splitting dataset into train/validation sets...")
-            # split_dataset = dataset.train_test_split(
-            #     test_size=1 - self.config.train_split,
-            #     seed=self.config.seed
-            # )
-
+            # Use 'train'/'test' splits from previous stage
             self.dataset = DatasetDict({
                 "train": dataset["train"],
                 "validation": dataset["test"]
@@ -55,23 +51,30 @@ class ModelTrainer:
             logger.error(f"Dataset loading failed: {e}")
             raise
 
+
     def load_model_and_tokenizer(self):
-        """Load pretrained model and tokenizer."""
+        """Load pretrained model and tokenizer for classification."""
         try:
             logger.info(f"Loading tokenizer from: {self.config.tokenizer_dir}")
             self.tokenizer = AutoTokenizer.from_pretrained(str(self.config.tokenizer_dir))
 
+            # Detect number of labels
+            labels = self.dataset["train"]["labels"]
+            num_labels = len(set(labels))
+            logger.info(f"Detected {num_labels} unique labels")
+
             logger.info(f"Loading model: {self.config.model_name}")
             self.model = AutoModelForSequenceClassification.from_pretrained(
                 self.config.model_name,
-                num_labels=self.config.num_labels
+                num_labels=num_labels
             )
 
             logger.info("Model and tokenizer loaded successfully")
             return self.model, self.tokenizer
         except Exception as e:
-            logger.error(f"Model/tokenizer loading failed: {e}")
+            logger.error(f"Failed to load model/tokenizer: {e}")
             raise
+
 
     def compute_metrics(self, eval_pred):
         """Compute classification metrics."""
@@ -97,12 +100,13 @@ class ModelTrainer:
             logger.error(f"Metric computation failed: {e}")
             return {}
 
+
     def train(self):
         """Train the Transformer model using Hugging Face Trainer."""
         try:
             logger.info("Starting model training...")
 
-            # Prepare data
+            # Prepare dataset
             if self.dataset is None:
                 self.load_data()
 
@@ -110,10 +114,10 @@ class ModelTrainer:
             if self.model is None or self.tokenizer is None:
                 self.load_model_and_tokenizer()
 
-            # Setup collator
+            # Data collator
             data_collator = DataCollatorWithPadding(tokenizer=self.tokenizer)
 
-            # Define training arguments
+            # Training arguments
             training_args = TrainingArguments(
                 output_dir=self.params.output_dir,
                 num_train_epochs=self.params.num_train_epochs,
@@ -137,7 +141,7 @@ class ModelTrainer:
                 seed=self.config.seed,
             )
 
-            logger.info(f"Training arguments configured:\n{training_args}")
+            logger.info(f"Training arguments:\n{training_args}")
 
             # Initialize Trainer
             trainer = Trainer(
@@ -151,23 +155,20 @@ class ModelTrainer:
                 callbacks=[EarlyStoppingCallback(early_stopping_patience=2)],
             )
 
-            # Train model
-            logger.info("Training in progress...")
+            # Train
             trainer.train()
-            logger.info("Training completed successfully")
+            logger.info("Model training completed")
 
-            # Save model + tokenizer
+            # Save final model and tokenizer
             final_model_path = Path(self.config.root_dir) / "final_model"
             final_model_path.mkdir(parents=True, exist_ok=True)
-
             trainer.save_model(str(final_model_path))
             self.tokenizer.save_pretrained(str(final_model_path))
             logger.info(f"Final model saved to: {final_model_path}")
 
-            # Save final metrics
+            # Save evaluation metrics
             metrics = trainer.evaluate()
             metrics_path = Path(self.config.root_dir) / "training_metrics.json"
-            import json
             with open(metrics_path, "w") as f:
                 json.dump(metrics, f, indent=4)
             logger.info(f"Training metrics saved to: {metrics_path}")
