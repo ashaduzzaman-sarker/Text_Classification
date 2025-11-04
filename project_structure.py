@@ -77,7 +77,7 @@ FILES_TO_CREATE = [
     # Application & Deployment
     "main.py",
     "app.py",
-    "streamlit_app.py"
+    "streamlit_app.py",
     "Dockerfile",
     "requirements.txt",
     "pyproject.toml",
