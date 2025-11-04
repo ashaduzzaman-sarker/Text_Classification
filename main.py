@@ -5,7 +5,7 @@
 
 from text_classification.pipeline.stage_01_data_loader import DataIngestionPipeline
 from text_classification.pipeline.stage_02_data_validation import DataValidationPipeline
-# from text_classification.pipeline.stage_03_data_transformation import DataTransformationPipeline
+from text_classification.pipeline.stage_03_data_transformation import DataTransformationPipeline
 # from text_classification.pipeline.stage_04_model_trainer import ModelTrainerPipeline
 # from text_classification.pipeline.stage_05_model_evaluation import ModelEvaluationPipeline
 
@@ -30,20 +30,19 @@ if __name__ == "__main__":
         
         if not validation_passed:
             logger.error("Data validation failed - check status file")
-            raise ValueError("Data validation checks failed")
-        
+            raise ValueError("Data validation checks failed")    
     except Exception as e:
         logger.error("Data Validation failed")
         raise
     
-    # # Stage 3: Data Transformation
-    # try:
-    #     logger.info("=" * 60)
-    #     pipeline = DataTransformationPipeline()
-    #     pipeline.run()
-    # except Exception as e:
-    #     logger.error("Data Transformation failed")
-    #     raise
+    # Stage 3: Data Transformation
+    try:
+        logger.info("=" * 60)
+        pipeline = DataTransformationPipeline()
+        pipeline.run()
+    except Exception as e:
+        logger.error("Data Transformation failed")
+        raise
     
     # # Stage 4: Model Training
     # try:
