@@ -127,7 +127,7 @@ class ModelTrainer:
                 weight_decay=self.params.weight_decay,
                 logging_dir=f"{self.config.root_dir}/logs",
                 logging_steps=self.params.logging_steps,
-                evaluation_strategy=self.params.evaluation_strategy,
+                eval_strategy=self.params.eval_strategy,
                 eval_steps=self.params.eval_steps,
                 save_steps=self.params.save_steps,
                 save_total_limit=self.params.save_total_limit,
