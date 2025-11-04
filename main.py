@@ -32,9 +32,9 @@ if __name__ == "__main__":
             logger.error("Data validation failed - check status file")
             raise ValueError("Data validation checks failed")
         
-    # except Exception as e:
-    #     logger.error("Data Validation failed")
-    #     raise
+    except Exception as e:
+        logger.error("Data Validation failed")
+        raise
     
     # # Stage 3: Data Transformation
     # try:
