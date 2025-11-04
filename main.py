@@ -5,7 +5,7 @@
 
 from text_classification.pipeline.stage_01_data_loader import DataIngestionPipeline
 from text_classification.pipeline.stage_02_data_validation import DataValidationPipeline
-from text_classification.pipeline.stage_03_data_transformation import DataTransformationPipeline
+from text_classification.pipeline.stage_03_data_preprocessing import DataTransformationPipeline
 # from text_classification.pipeline.stage_04_model_trainer import ModelTrainerPipeline
 # from text_classification.pipeline.stage_05_model_evaluation import ModelEvaluationPipeline
 
