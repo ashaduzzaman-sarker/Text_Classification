@@ -33,19 +33,19 @@ class ModelTrainer:
     def load_data(self):
         """Load tokenized dataset and prepare train-validation splits."""
         try:
-            logger.info(f"📦 Loading tokenized dataset from: {self.config.data_dir}")
+            logger.info(f"Loading tokenized dataset from: {self.config.data_dir}")
             dataset = load_from_disk(str(self.config.data_dir))
 
-            # Split into train/validation
-            logger.info("🔄 Splitting dataset into train/validation sets...")
-            split_dataset = dataset.train_test_split(
-                test_size=1 - self.config.train_split,
-                seed=self.config.seed
-            )
+            # # Split into train/validation
+            # logger.info("Splitting dataset into train/validation sets...")
+            # split_dataset = dataset.train_test_split(
+            #     test_size=1 - self.config.train_split,
+            #     seed=self.config.seed
+            # )
 
             self.dataset = DatasetDict({
-                "train": split_dataset["train"],
-                "validation": split_dataset["test"]
+                "train": dataset["train"],
+                "validation": dataset["test"]
             })
 
             logger.info(f"Train samples: {len(self.dataset['train'])}")
