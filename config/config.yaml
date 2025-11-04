@@ -23,7 +23,7 @@ data_validation:
   status_file: artifacts/data_validation/status.txt
   data_dir: artifacts/data_ingestion/dataset
   required_columns: ["text", "label"]  # Adapted for classification
-  min_samples: 100
+  min_samples: 1000
 
 # ==============================
 # Data Transformation
