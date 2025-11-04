@@ -131,7 +131,7 @@ class ModelTrainer:
                 eval_steps=self.params.eval_steps,
                 save_steps=self.params.save_steps,
                 save_total_limit=self.params.save_total_limit,
-                learning_rate=self.params.learning_rate,
+                learning_rate=float(self.params.learning_rate),
                 gradient_accumulation_steps=self.params.gradient_accumulation_steps,
                 fp16=self.params.fp16,
                 load_best_model_at_end=self.params.load_best_model_at_end,
