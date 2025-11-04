@@ -6,7 +6,7 @@
 from text_classification.pipeline.stage_01_data_loader import DataIngestionPipeline
 from text_classification.pipeline.stage_02_data_validation import DataValidationPipeline
 from text_classification.pipeline.stage_03_data_preprocessing import DataTransformationPipeline
-# from text_classification.pipeline.stage_04_model_trainer import ModelTrainerPipeline
+from text_classification.pipeline.stage_04_model_trainer import ModelTrainerPipeline
 # from text_classification.pipeline.stage_05_model_evaluation import ModelEvaluationPipeline
 
 from text_classification.logging.logger import logger
@@ -44,14 +44,14 @@ if __name__ == "__main__":
         logger.error("Data Transformation failed")
         raise
     
-    # # Stage 4: Model Training
-    # try:
-    #     logger.info("=" * 60)
-    #     pipeline = ModelTrainerPipeline()
-    #     pipeline.run()
-    # except Exception as e:
-    #     logger.error("Model Training failed")
-    #     raise
+    # Stage 4: Model Training
+    try:
+        logger.info("=" * 60)
+        pipeline = ModelTrainerPipeline()
+        pipeline.run()
+    except Exception as e:
+        logger.error("Model Training failed")
+        raise
     
     # # Stage 5: Model Evaluation
     # try:
