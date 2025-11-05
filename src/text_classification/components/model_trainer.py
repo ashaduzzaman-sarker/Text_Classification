@@ -6,6 +6,7 @@
 import numpy as np
 import json
 from pathlib import Path
+from tqdm import tqdm
 from datasets import load_from_disk, DatasetDict
 from transformers import (
     AutoModelForSequenceClassification,

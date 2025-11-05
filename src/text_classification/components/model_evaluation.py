@@ -9,6 +9,7 @@ from pathlib import Path
 import evaluate
 import matplotlib.pyplot as plt
 import seaborn as sns
+from tqdm import tqdm
 from datasets import load_from_disk
 from transformers import (
     AutoTokenizer,
@@ -92,7 +93,7 @@ class ModelEvaluation:
             self._plot_confusion_matrix(cm, Path(self.config.root_dir) / "confusion_matrix.png")
 
             # Save metrics
-            metrics_path = Path(self.config.root_dir) / ".json"
+            metrics_path = Path(self.config.root_dir) / "evaluation_metrics.json"
             with open(metrics_path, "w") as f:
                 json.dump(metrics, f, indent=4)
             logger.info(f"Evaluation metrics saved to: {metrics_path}")
