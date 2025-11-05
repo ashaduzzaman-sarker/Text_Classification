@@ -12,7 +12,7 @@ data_ingestion:
   dataset_name: stanfordnlp/imdb  # Hugging Face dataset name (e.g., "imdb", "ag_news")
   config_name: null   # Optional (e.g., "default" for some datasets)
   split: train
-  max_samples: 2000   # Use null for full dataset or limit for fast iteration
+  max_samples: null   # Use null for full dataset or limit for fast iteration
   test_size: 0.2      # Split ratio for test data
 
 # ==============================
@@ -23,7 +23,7 @@ data_validation:
   status_file: artifacts/data_validation/status.txt
   data_dir: artifacts/data_ingestion/dataset
   required_columns: ["text", "label"]  # Adapted for classification
-  min_samples: 100
+  min_samples: 1000
 
 # ==============================
 # Data Transformation
