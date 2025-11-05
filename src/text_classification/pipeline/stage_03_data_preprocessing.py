@@ -38,7 +38,7 @@ class DataTransformationPipeline:
             raw_dataset = Dataset.load_from_disk(str(data_transformation_config.data_dir))
             logger.info(f"Dataset loaded: {len(raw_dataset)} samples")
 
-            # ✅ Use Hugging Face's train_test_split
+            # Use Hugging Face's train_test_split
             logger.info(f"Splitting dataset with test_size={data_ingestion_config.test_size}")
             dataset_split = raw_dataset.train_test_split(
                 test_size=data_ingestion_config.test_size,
@@ -50,7 +50,7 @@ class DataTransformationPipeline:
 
             logger.info(f"Dataset split: train={len(dataset_split['train'])}, test={len(dataset_split['test'])}")
 
-            # ✅ Tokenize both splits
+            # Tokenize both splits
             logger.info("Tokenizing train and test datasets...")
             tokenized_dataset = dataset_split.map(
                 data_transformer.preprocess_function,
@@ -60,12 +60,12 @@ class DataTransformationPipeline:
                 desc="Tokenizing dataset"
             )
 
-            # ✅ Save tokenized dataset
+            # Save tokenized dataset
             output_path = data_transformation_config.root_dir / "tokenized_dataset"
             tokenized_dataset.save_to_disk(str(output_path))
             logger.info(f"Tokenized dataset saved to: {output_path}")
 
-            # ✅ Save tokenizer
+            # Save tokenizer
             tokenizer_path = data_transformation_config.root_dir / "tokenizer"
             data_transformer.load_tokenizer()
             data_transformer.tokenizer.save_pretrained(str(tokenizer_path))

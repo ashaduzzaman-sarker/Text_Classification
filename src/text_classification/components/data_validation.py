@@ -73,7 +73,8 @@ class DataValidation:
         # Check for null or empty values in required columns
         for column in self.config.required_columns:
             # null_count = sum(1 for item in dataset[column] if not item)
-            null_count = sum(1 for item in dataset[column] if item is None)
+            # null_count = sum(1 for item in dataset[column] if item is None)
+            null_count = sum(1 for item in dataset[column] if not item or (isinstance(item, str) and not item.strip()))
             null_percentage = (null_count / num_samples) * 100
 
             if null_count > 0:

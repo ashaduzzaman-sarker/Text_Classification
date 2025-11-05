@@ -3,10 +3,9 @@
 # ============================================================================
 """Configuration entities for the text classification pipeline."""
 
-from dataclasses import dataclass
-from pathlib import Path
+from dataclasses import dataclass, field
 from typing import Optional, List, Literal
-
+from pathlib import Path
 
 # ==============================
 # Data Ingestion

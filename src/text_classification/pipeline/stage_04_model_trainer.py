@@ -14,7 +14,7 @@ class ModelTrainerPipeline:
     def __init__(self):
         self.stage_name = "Model Training"
 
-    def run(self):
+    def run(self) -> dict:
         """Execute model training pipeline."""
         try:
             logger.info(f">>>>>> Stage: {self.stage_name} started <<<<<<")

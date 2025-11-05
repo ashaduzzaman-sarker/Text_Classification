@@ -49,12 +49,6 @@ class ConfigurationManager:
             if self.params.TrainingArguments.per_device_train_batch_size < 1:
                 raise ValueError("Batch size must be >= 1")
 
-            # Validate FP16 availability
-            if self.params.TrainingArguments.fp16:
-                if not torch.cuda.is_available():
-                    logger.warning("FP16 enabled but CUDA not available - will use FP32")
-                    self.params.TrainingArguments.fp16 = False
-            
             logger.info("Configuration validation passed")
             
         except Exception as e:

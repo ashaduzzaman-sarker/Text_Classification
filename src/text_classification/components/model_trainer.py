@@ -31,6 +31,10 @@ class ModelTrainer:
         self.tokenizer = None
         self.dataset = None
 
+        # Validate FP16 configuration
+        if self.params.fp16 and not torch.cuda.is_available():
+            logger.warning("FP16 requested but CUDA unavailable - using FP32")
+            self.params.fp16 = False
 
     def load_data(self):
         """Load tokenized dataset and prepare train-validation splits."""
@@ -119,25 +123,25 @@ class ModelTrainer:
 
             # Training arguments
             training_args = TrainingArguments(
-                output_dir=self.params.output_dir,
-                num_train_epochs=self.params.num_train_epochs,
-                per_device_train_batch_size=self.params.per_device_train_batch_size,
-                per_device_eval_batch_size=self.params.per_device_eval_batch_size,
-                warmup_steps=self.params.warmup_steps,
-                weight_decay=self.params.weight_decay,
+                output_dir=str(self.params.output_dir),
+                num_train_epochs=int(self.params.num_train_epochs),
+                per_device_train_batch_size=int(self.params.per_device_train_batch_size),
+                per_device_eval_batch_size=int(self.params.per_device_eval_batch_size),
+                warmup_steps=int(self.params.warmup_steps),
+                weight_decay=float(self.params.weight_decay),
                 logging_dir=f"{self.config.root_dir}/logs",
-                logging_steps=self.params.logging_steps,
+                logging_steps=int(self.params.logging_steps),
                 eval_strategy=self.params.eval_strategy,
-                eval_steps=self.params.eval_steps,
-                save_steps=self.params.save_steps,
-                save_total_limit=self.params.save_total_limit,
-                learning_rate=float(self.params.learning_rate),
-                gradient_accumulation_steps=self.params.gradient_accumulation_steps,
-                fp16=self.params.fp16,
-                load_best_model_at_end=self.params.load_best_model_at_end,
-                metric_for_best_model=self.params.metric_for_best_model,
-                greater_is_better=self.params.greater_is_better,
-                report_to=self.params.report_to,
+                eval_steps=int(self.params.eval_steps),
+                save_steps=int(self.params.save_steps),
+                save_total_limit=int(self.params.save_total_limit),
+                learning_rate=float(self.params.learning_rate),  # Already correct
+                gradient_accumulation_steps=int(self.params.gradient_accumulation_steps),
+                fp16=bool(self.params.fp16) if torch.cuda.is_available() else False,
+                load_best_model_at_end=bool(self.params.load_best_model_at_end),
+                metric_for_best_model=str(self.params.metric_for_best_model),
+                greater_is_better=bool(self.params.greater_is_better),
+                report_to=list(self.params.report_to),
                 seed=self.config.seed,
             )
 
