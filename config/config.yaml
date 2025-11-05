@@ -10,7 +10,7 @@ data_ingestion:
   root_dir: artifacts/data_ingestion
   cache_dir: artifacts/data_ingestion/cache
   dataset_name: stanfordnlp/imdb  # Hugging Face dataset name (e.g., "imdb", "ag_news")
-  config_name: 10000 #null   # Optional (e.g., "default" for some datasets)
+  config_name: null   # Optional (e.g., "default" for some datasets)
   split: train
   max_samples: null   # Use null for full dataset or limit for fast iteration
   test_size: 0.2      # Split ratio for test data
