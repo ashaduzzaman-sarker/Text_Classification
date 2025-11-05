@@ -55,7 +55,7 @@ class DataValidation:
         return True
 
     def validate_data_quality(self, dataset: Dataset) -> bool:
-        """Perform data quality checks."""
+        """Validate data quality checks, handling numeric labels correctly."""
         quality_passed = True
         num_samples = len(dataset)
         logger.info(f"Dataset size: {num_samples} samples")
@@ -70,22 +70,21 @@ class DataValidation:
             self.validation_errors.append(error_msg)
             quality_passed = False
 
-        # Check for null or empty values in required columns
+        # Check for null values in required columns
         for column in self.config.required_columns:
-            null_count = sum(1 for item in dataset[column] if not item)
-            # null_count = sum(1 for item in dataset[column] if item is None)
+            # Only count None as null, not 0
+            null_count = sum(1 for item in dataset[column] if item is None)
             null_percentage = (null_count / num_samples) * 100
 
             if null_count > 0:
                 warning_msg = (
-                    f"Column '{column}' has {null_count} null/empty values "
+                    f"Column '{column}' has {null_count} null values "
                     f"({null_percentage:.2f}%)"
                 )
                 logger.warning(warning_msg)
                 self.validation_errors.append(warning_msg)
 
-                # Fail if null values exceed 5%
-                if null_percentage > 5.0:
+                if null_percentage > 5.0:  # Fail if >5% null
                     quality_passed = False
 
         if quality_passed:
