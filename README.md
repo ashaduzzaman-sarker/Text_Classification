@@ -1,4 +1,4 @@
-# Text Classification – LoRA/QLoRA, MLflow, Docker, Kubernetes, Azure
+# Text Classification 
 
 This repository implements an end-to-end, production-ready text classification
 pipeline using modern NLP tooling (Hugging Face Transformers, 🤗 Datasets) and
