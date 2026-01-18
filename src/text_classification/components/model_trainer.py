@@ -92,6 +92,12 @@ class ModelTrainer:
             use_lora = bool(getattr(self.lora_params, "enabled", False)) if self.lora_params is not None else False
             use_qlora = bool(getattr(self.lora_params, "use_qlora", False)) if self.lora_params is not None else False
 
+            # QLoRA currently relies on GPU + bitsandbytes; disable automatically
+            # in CPU-only environments to avoid cryptic model loading errors.
+            if use_lora and use_qlora and not torch.cuda.is_available():
+                logger.warning("QLoRA requested but CUDA unavailable - falling back to LoRA without 4-bit quantisation")
+                use_qlora = False
+
             if use_lora and use_qlora:
                 # QLoRA (4-bit quantisation) path
                 logger.info("Initialising model with QLoRA (4-bit quantisation)")
@@ -125,6 +131,10 @@ class ModelTrainer:
                     lora_dropout=float(getattr(self.lora_params, "lora_dropout", 0.05)),
                     bias=str(getattr(self.lora_params, "bias", "none")),
                     task_type=TaskType.SEQ_CLS,
+                    # Default target modules for DistilBERT-style Transformers.
+                    # This avoids peft requiring explicit configuration and
+                    # matches common practice of adapting attention projections.
+                    target_modules=["q_lin", "v_lin"],
                 )
                 self.model = get_peft_model(base_model, lora_config)
                 self.model.print_trainable_parameters()

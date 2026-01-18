@@ -63,8 +63,6 @@ dependencies = [
   # Cloud & Storage
   "huggingface-hub>=0.24.0",
   "requests>=2.32.0",
-  "boto3>=1.34.0",
-  "mypy-boto3-s3>=1.34.0",
 
   # Visualization & Monitoring
   "matplotlib>=3.9.0",
