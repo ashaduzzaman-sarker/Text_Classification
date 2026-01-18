@@ -1,23 +1,38 @@
 # ============================================================================
 # src/text_classification/components/model_trainer.py
 # ============================================================================
-"""Fine-tunes Transformer models for text classification with robust metrics and logging."""
+"""Fine-tunes Transformer models for text classification with LoRA/QLoRA.
 
-import numpy as np
+This trainer supports standard full fine-tuning as well as parameter-efficient
+fine-tuning via LoRA/QLoRA using the ``peft`` library. It also logs key
+metrics to MLflow for experiment tracking.
+"""
+
 import json
 from pathlib import Path
-from tqdm import tqdm
-from datasets import load_from_disk, DatasetDict
+from typing import Optional
+
+import evaluate
+import mlflow
+import numpy as np
+import torch
+from datasets import DatasetDict, load_from_disk
+from peft import (
+    LoraConfig,
+    TaskType,
+    get_peft_model,
+    prepare_model_for_kbit_training,
+)
 from transformers import (
     AutoModelForSequenceClassification,
     AutoTokenizer,
-    Trainer,
-    TrainingArguments,
+    BitsAndBytesConfig,
     DataCollatorWithPadding,
     EarlyStoppingCallback,
+    Trainer,
+    TrainingArguments,
 )
-import evaluate
-import torch
+
 from text_classification.logging.logger import logger
 from text_classification.entity.config_entity import ModelTrainerConfig
 
@@ -25,17 +40,18 @@ from text_classification.entity.config_entity import ModelTrainerConfig
 class ModelTrainer:
     """Handles model fine-tuning for text classification tasks."""
 
-    def __init__(self, config: ModelTrainerConfig, params: dict):
+    def __init__(self, config: ModelTrainerConfig, training_params, lora_params: Optional[object] = None):
         self.config = config
-        self.params = params
+        self.training_params = training_params
+        self.lora_params = lora_params
         self.model = None
         self.tokenizer = None
         self.dataset = None
 
         # Validate FP16 configuration
-        if self.params.fp16 and not torch.cuda.is_available():
+        if getattr(self.training_params, "fp16", False) and not torch.cuda.is_available():
             logger.warning("FP16 requested but CUDA unavailable - using FP32")
-            self.params.fp16 = False
+            self.training_params.fp16 = False
 
     def load_data(self):
         """Load tokenized dataset and prepare train-validation splits."""
@@ -68,13 +84,54 @@ class ModelTrainer:
             num_labels = len(set(labels))
             logger.info(f"Detected {num_labels} unique labels")
 
-            logger.info(f"Loading model: {self.config.model_name}")
-            self.model = AutoModelForSequenceClassification.from_pretrained(
-                self.config.model_name,
-                num_labels=num_labels
-            )
+            logger.info(f"Loading base model: {self.config.model_name}")
 
-            logger.info("Model and tokenizer loaded successfully")
+            # ------------------------------------------------------------------
+            # LoRA / QLoRA-aware model loading
+            # ------------------------------------------------------------------
+            use_lora = bool(getattr(self.lora_params, "enabled", False)) if self.lora_params is not None else False
+            use_qlora = bool(getattr(self.lora_params, "use_qlora", False)) if self.lora_params is not None else False
+
+            if use_lora and use_qlora:
+                # QLoRA (4-bit quantisation) path
+                logger.info("Initialising model with QLoRA (4-bit quantisation)")
+                bnb_config = BitsAndBytesConfig(
+                    load_in_4bit=True,
+                    bnb_4bit_use_double_quant=True,
+                    bnb_4bit_quant_type="nf4",
+                    bnb_4bit_compute_dtype=torch.bfloat16,
+                )
+
+                base_model = AutoModelForSequenceClassification.from_pretrained(
+                    self.config.model_name,
+                    num_labels=num_labels,
+                    quantization_config=bnb_config,
+                    device_map="auto",
+                )
+
+                base_model = prepare_model_for_kbit_training(base_model)
+            else:
+                # Standard full-precision model (optionally with LoRA on top)
+                base_model = AutoModelForSequenceClassification.from_pretrained(
+                    self.config.model_name,
+                    num_labels=num_labels,
+                )
+
+            if use_lora:
+                logger.info("Wrapping base model with LoRA adapters")
+                lora_config = LoraConfig(
+                    r=int(getattr(self.lora_params, "r", 8)),
+                    lora_alpha=int(getattr(self.lora_params, "lora_alpha", 16)),
+                    lora_dropout=float(getattr(self.lora_params, "lora_dropout", 0.05)),
+                    bias=str(getattr(self.lora_params, "bias", "none")),
+                    task_type=TaskType.SEQ_CLS,
+                )
+                self.model = get_peft_model(base_model, lora_config)
+                self.model.print_trainable_parameters()
+            else:
+                self.model = base_model
+
+            logger.info("Model and tokenizer loaded successfully (LoRA enabled: %s, QLoRA enabled: %s)", use_lora, use_qlora)
             return self.model, self.tokenizer
         except Exception as e:
             logger.error(f"Failed to load model/tokenizer: {e}")
@@ -123,26 +180,27 @@ class ModelTrainer:
             data_collator = DataCollatorWithPadding(tokenizer=self.tokenizer)
 
             # Training arguments
+            tp = self.training_params
             training_args = TrainingArguments(
-                output_dir=str(self.params.output_dir),
-                num_train_epochs=int(self.params.num_train_epochs),
-                per_device_train_batch_size=int(self.params.per_device_train_batch_size),
-                per_device_eval_batch_size=int(self.params.per_device_eval_batch_size),
-                warmup_steps=int(self.params.warmup_steps),
-                weight_decay=float(self.params.weight_decay),
+                output_dir=str(tp.output_dir),
+                num_train_epochs=int(tp.num_train_epochs),
+                per_device_train_batch_size=int(tp.per_device_train_batch_size),
+                per_device_eval_batch_size=int(tp.per_device_eval_batch_size),
+                warmup_steps=int(tp.warmup_steps),
+                weight_decay=float(tp.weight_decay),
                 logging_dir=f"{self.config.root_dir}/logs",
-                logging_steps=int(self.params.logging_steps),
-                eval_strategy=self.params.eval_strategy,
-                eval_steps=int(self.params.eval_steps),
-                save_steps=int(self.params.save_steps),
-                save_total_limit=int(self.params.save_total_limit),
-                learning_rate=float(self.params.learning_rate),  # Already correct
-                gradient_accumulation_steps=int(self.params.gradient_accumulation_steps),
-                fp16=bool(self.params.fp16) if torch.cuda.is_available() else False,
-                load_best_model_at_end=bool(self.params.load_best_model_at_end),
-                metric_for_best_model=str(self.params.metric_for_best_model),
-                greater_is_better=bool(self.params.greater_is_better),
-                report_to=list(self.params.report_to),
+                logging_steps=int(tp.logging_steps),
+                eval_strategy=tp.eval_strategy,
+                eval_steps=int(tp.eval_steps),
+                save_steps=int(tp.save_steps),
+                save_total_limit=int(tp.save_total_limit),
+                learning_rate=float(tp.learning_rate),
+                gradient_accumulation_steps=int(tp.gradient_accumulation_steps),
+                fp16=bool(tp.fp16) if torch.cuda.is_available() else False,
+                load_best_model_at_end=bool(tp.load_best_model_at_end),
+                metric_for_best_model=str(tp.metric_for_best_model),
+                greater_is_better=bool(tp.greater_is_better),
+                report_to=list(tp.report_to),
                 seed=self.config.seed,
             )
 
@@ -160,23 +218,49 @@ class ModelTrainer:
                 callbacks=[EarlyStoppingCallback(early_stopping_patience=2)],
             )
 
-            # Train
-            trainer.train()
-            logger.info("Model training completed")
+            # ------------------------------------------------------------------
+            # MLflow experiment tracking
+            # ------------------------------------------------------------------
+            mlflow.set_tracking_uri(
+                # Default to local ./mlruns if env var not set
+                mlflow.get_tracking_uri() or "file:./mlruns"
+            )
+            mlflow.set_experiment(
+                experiment_name="text_classification_lora"
+            )
 
-            # Save final model and tokenizer
-            final_model_path = Path(self.config.root_dir) / "final_model"
-            final_model_path.mkdir(parents=True, exist_ok=True)
-            trainer.save_model(str(final_model_path))
-            self.tokenizer.save_pretrained(str(final_model_path))
-            logger.info(f"Final model saved to: {final_model_path}")
+            with mlflow.start_run():
+                # Log key hyperparameters
+                mlflow.log_params({
+                    "model_name": self.config.model_name,
+                    "seed": self.config.seed,
+                    "use_lora": bool(getattr(self.lora_params, "enabled", False)) if self.lora_params is not None else False,
+                    "use_qlora": bool(getattr(self.lora_params, "use_qlora", False)) if self.lora_params is not None else False,
+                    "num_train_epochs": int(tp.num_train_epochs),
+                    "per_device_train_batch_size": int(tp.per_device_train_batch_size),
+                    "learning_rate": float(tp.learning_rate),
+                })
 
-            # Save evaluation metrics
-            metrics = trainer.evaluate()
-            metrics_path = Path(self.config.root_dir) / "training_metrics.json"
-            with open(metrics_path, "w") as f:
-                json.dump(metrics, f, indent=4)
-            logger.info(f"Training metrics saved to: {metrics_path}")
+                # Train
+                trainer.train()
+                logger.info("Model training completed")
+
+                # Save final model and tokenizer
+                final_model_path = Path(self.config.root_dir) / "final_model"
+                final_model_path.mkdir(parents=True, exist_ok=True)
+                trainer.save_model(str(final_model_path))
+                self.tokenizer.save_pretrained(str(final_model_path))
+                logger.info(f"Final model saved to: {final_model_path}")
+
+                # Save evaluation metrics
+                metrics = trainer.evaluate()
+                metrics_path = Path(self.config.root_dir) / "training_metrics.json"
+                with open(metrics_path, "w") as f:
+                    json.dump(metrics, f, indent=4)
+                logger.info(f"Training metrics saved to: {metrics_path}")
+
+                # Log metrics to MLflow
+                mlflow.log_metrics(metrics)
 
             return metrics
 

@@ -27,3 +27,15 @@ EvaluationArguments:
   max_samples: 1000
   report_file: artifacts/model_evaluation/evaluation_report.txt
   predictions_file: artifacts/model_evaluation/predictions.csv
+
+# ============================================================================
+# LoRA / QLoRA Configuration
+# ============================================================================
+
+LoRAConfig:
+  enabled: true          # Set to false to disable LoRA/QLoRA and do full fine-tuning
+  use_qlora: true        # If true, enables 4-bit QLoRA with bitsandbytes
+  r: 8                   # LoRA rank
+  lora_alpha: 16         # LoRA alpha scaling
+  lora_dropout: 0.05     # LoRA dropout probability
+  bias: "none"           # LoRA bias: "none" | "all" | "lora_only"

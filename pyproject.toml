@@ -86,12 +86,26 @@ dependencies = [
   "mypy>=1.10.0",
   "notebook>=5.7.6",
   "httpx>=0.27.0"
+  ,"peft>=0.11.0"
+  ,"bitsandbytes>=0.45.0"
+  ,"prometheus-client>=0.20.0"
 ]
 
 [project.optional-dependencies]
 dev = ["black", "isort", "flake8", "pytest", "pytest-cov", "pytest-asyncio", "mypy"]
 docs = ["mkdocs", "mkdocstrings[python]", "mkdocs-material"]
 deploy = ["uvicorn[standard]", "gunicorn", "gradio"]
+
+[tool.black]
+line-length = 100
+target-version = ["py311"]
+
+[tool.isort]
+profile = "black"
+
+[tool.flake8]
+max-line-length = 100
+extend-ignore = ["E203", "W503"]
 
 [project.urls]
 Homepage = "https://github.com/ashaduzzaman-sarker/Text_Classification"

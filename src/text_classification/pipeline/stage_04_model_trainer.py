@@ -23,11 +23,13 @@ class ModelTrainerPipeline:
             config_manager = ConfigurationManager()
             model_trainer_config = config_manager.get_model_trainer_config()
             training_params = config_manager.params.TrainingArguments
+            lora_params = getattr(config_manager.params, "LoRAConfig", None)
 
-            # Initialize trainer and train
+            # Initialize trainer and train (supports LoRA/QLoRA via lora_params)
             trainer = ModelTrainer(
                 config=model_trainer_config,
-                params=training_params
+                training_params=training_params,
+                lora_params=lora_params,
             )
             train_metrics = trainer.train()
 

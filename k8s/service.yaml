@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: text-classification-api
+  labels:
+    app: text-classification-api
+spec:
+  selector:
+    app: text-classification-api
+  ports:
+    - name: http
+      protocol: TCP
+      port: 80
+      targetPort: 8000
+  type: LoadBalancer
